@@ -1,0 +1,121 @@
+import dotenv from "dotenv";
+dotenv.config();
+import express from "express";
+import mongoose from "mongoose";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import authRoutes from "../routes/auth.routes.js";
+import adminRoutes from "../routes/admin.routes.js";
+import meetingRoutes from "../routes/meeting.routes.js";
+import { feedbackRouter } from "../routes/feedback.routes.js";
+import emailRoutes from "../routes/email.routes.js";
+import { OpenAI } from "openai";
+import { createOpenAI } from '@ai-sdk/openai';
+import { S3Client } from "@aws-sdk/client-s3";
+import userRoutes from "../routes/userRoutes.js";
+import AppError from "../utils/appError.js";
+import supportRoutes from "../routes/support.routes.js";
+import translateRoutes from "../routes/translate.routes.js";
+import { chatRouter } from "../routes/chat.routes.js";
+import { queryRouter } from "../routes/query.routes.js";
+import translateTranscript from "../translation.controllers.js";
+import liveTranslateRoutes from "../routes/liveTranslate.routes.js";
+import planRoutes from "../routes/plan.routes.js";
+import paymentRoutes from "../routes/payment.routes.js";
+import { getLastTenMeetings } from "../controllers/meeting.controllers.js";
+import { getTotalUsage } from "../controllers/userController.js";
+import { historyRouter } from "../routes/history.routes.js";
+import { verifyToken } from "../middlewares/auth.middleware.js";
+import { profileRouter } from "../routes/profile.routes.js";
+import articleRoutes from "../routes/article.routes.js";
+import { reminderRoutes } from "../routes/reminderRoutes.js";
+import { startReminderScheduler } from "../jobs/reminderScheduler.js";
+
+const app = express();
+
+// Original OpenAI client (keep for backward compatibility if needed)
+export const openaiOriginal = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  timeout: 300000,
+});
+
+// AI SDK OpenAI client for structured outputs
+export const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+app.use(express.json());
+app.use(cookieParser());
+app.use(cors({
+  origin: [
+    "https://session-scribe-v1.vercel.app",
+    "https://www.sessionscribe.ai",
+    "http://localhost:5173",
+    "https://meet.google.com"
+  ],
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true
+}));
+
+mongoose
+  .connect(process.env.MONGO_URI, { dbName: "test" })
+  .then(() => {
+    console.log("✅ Connected to MongoDB ");
+    
+    // Routes should come FIRST
+    app.use("/api/users", userRoutes);
+    app.use("/api/admin", adminRoutes);
+    app.use("/api/meeting", meetingRoutes);
+    app.use("/api/auth", authRoutes);
+    app.use("/api/feedback", feedbackRouter);
+    app.use("/api/email", emailRoutes);
+    app.use("/api/support", supportRoutes);
+    app.use("/api/chat", chatRouter);
+    app.use("/api/queries", queryRouter);
+    app.use("/api/meetingtranslate", translateRoutes);
+    app.use('/api/translate', liveTranslateRoutes);
+    app.use("/api/history", historyRouter);
+    app.use("/api/user", profileRouter);
+    app.post("/api/transcript/translate", translateTranscript);
+    app.get("/api/lasttenmeetings",verifyToken, getLastTenMeetings);
+    app.get("/api/user/totalUsage",verifyToken, getTotalUsage);
+    app.use('/api/reminders', reminderRoutes)
+    app.use('/api', planRoutes)
+    app.use("/api/articles", articleRoutes);
+    app.use('/api', paymentRoutes)
+    // app.use("/api/record", recordingRoutes);
+    
+    // 404 Handler comes AFTER all routes
+    app.use((req, res, next) => {
+      next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
+    });
+    
+    // Global Error Handler comes LAST
+    app.use((err, req, res, next) => {
+      err.statusCode = err.statusCode || 500;
+      err.status = err.status || "error";
+
+      res.status(err.statusCode).json({
+        status: err.status,
+        message: err.message,
+        ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+      });
+    });
+    
+    app.listen(process.env.PORT || 3000, () => {
+      console.log(`🚀 Server running on port ${process.env.PORT || 3000}`);
+    });
+
+    startReminderScheduler();
+  })
+  .catch((err) => {
+    console.error("❌ Mongoose connection failed:", err);
+  });
