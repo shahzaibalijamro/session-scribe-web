@@ -56,10 +56,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
   origin: [
-    "https://session-scribe-v1.vercel.app",
-    "https://www.sessionscribe.ai",
-    "http://localhost:5173",
-    "https://meet.google.com"
+    "https://session-scribe-frontend.vercel.app",
+    "http://localhost:5173"
   ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true
