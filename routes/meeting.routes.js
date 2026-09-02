@@ -60,7 +60,6 @@
 
 import {
   generateMeetingData,
-  generatePresignedUrl,
   getMeetingData,
   getSingleMeetingData,
   deleteMeetingData,
@@ -91,7 +90,6 @@ router.use(verifyToken); // Apply auth middleware to all routes
 // Existing routes
 router.post("/", upload.single("audioFile"), generateMeetingData);
 router.get("/meeting-data", getMeetingData);
-router.post("/generate-upload-url", generatePresignedUrl);
 
 // Live transcription routes
 router.post("/live-summary", processLiveTranscriptionSummary);

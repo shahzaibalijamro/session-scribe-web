@@ -1,23 +1,25 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { s3Client } from "./index.js";
+import { v2 as cloudinary } from 'cloudinary';
 import fs from "fs";
-import User from "./models/user.model.js";
-const uploadToS3 = async (filePath, key, contentType) => {
+import User from "./models/user.model.js";// Configure Cloudinary with environment variables
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const uploadToCloudinary = async (filePath, resourceType = "auto") => {
   try {
-    const fileContent = fs.readFileSync(filePath);
-    const command = new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: key,
-      Body: fileContent,
-      ContentType: contentType,
+    const result = await cloudinary.uploader.upload(filePath, {
+      resource_type: resourceType,
+      folder: "session-scribe/meetings/audio",
     });
-    await s3Client.send(command);
-    return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    return result.secure_url;
   } catch (error) {
-    console.error("S3 upload error:", error);
+    console.error("Cloudinary upload error:", error);
     throw error;
   }
 };
+
 
 const checkUsageStatus = async (req, res) => {
   try {
@@ -77,4 +79,4 @@ const checkUsageStatus = async (req, res) => {
   }
 };
 
-export { uploadToS3,checkUsageStatus };
+export { uploadToCloudinary,checkUsageStatus };

@@ -2388,7 +2388,7 @@ import {
   formatTranscriptWithSpeakers,
   analyzeDiscussionTopics
 } from "../prompts.js";
-import { uploadToS3 } from "../utils.js";
+import { uploadToCloudinary } from "../utils.js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3Client } from "../index.js";
@@ -2789,7 +2789,7 @@ const processAudioNotes = async (req, user, durationInSeconds, userSession) => {
 
     // Upload original file to S3
     const audioKey = `meetings/audio/${userId}/${Date.now()}-${path.basename(audioFile.originalname)}`;
-    const uploadedAudioUrl = await uploadToS3(audioFile.path, audioKey, "audio/webm");
+    const uploadedAudioUrl = await uploadToCloudinary(audioFile.path, "video");
 
     // Check duration and split if necessary
     console.log(`⏱️ [User ${userId}][Session ${sessionId}] Checking audio duration...`);
@@ -2972,7 +2972,7 @@ const processRegularRecording = async (req, user, durationInSeconds, userSession
 
     // Upload original file to S3
     const audioKey = `meetings/audio/${userId}/${Date.now()}-${path.basename(audioFile.originalname)}`;
-    const uploadedAudioUrl = await uploadToS3(audioFile.path, audioKey, "audio/webm");
+    const uploadedAudioUrl = await uploadToCloudinary(audioFile.path, "video");
 
     // Check duration and split if necessary
     console.log(`⏱️ [User ${userId}][Session ${sessionId}] Checking audio duration...`);
@@ -3286,7 +3286,7 @@ const generateMeetingData = async (req, res) => {
       if (req.file) {
         try {
           const audioKey = `meetings/audio/${userId}/${Date.now()}-${path.basename(req.file.originalname)}`;
-          uploadedAudioUrl = await uploadToS3(req.file.path, audioKey, "audio/webm");
+          uploadedAudioUrl = await uploadToCloudinary(req.file.path, "video");
 
           // Clean up uploaded file
           if (fs.existsSync(req.file.path)) {
@@ -4522,7 +4522,7 @@ const processScheduledMeetingRecording = async (req, user, durationInSeconds, us
 
     // Upload original file to S3
     const audioKey = `meetings/audio/${userId}/${Date.now()}-${path.basename(audioFile.originalname)}`;
-    const uploadedAudioUrl = await uploadToS3(audioFile.path, audioKey, "audio/webm");
+    const uploadedAudioUrl = await uploadToCloudinary(audioFile.path, "video");
 
     // Check duration and split if necessary
     console.log(`⏱️ [User ${userId}][Session ${sessionId}] Checking audio duration...`);
