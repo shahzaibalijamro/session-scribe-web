@@ -1,13 +1,14 @@
 import { v2 as cloudinary } from 'cloudinary';
 import fs from "fs";
 import User from "./models/user.model.js";// Configure Cloudinary with environment variables
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+
 
 const uploadToCloudinary = async (filePath, resourceType = "auto") => {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
   try {
     const result = await cloudinary.uploader.upload(filePath, {
       resource_type: resourceType,
@@ -28,10 +29,10 @@ const checkUsageStatus = async (req, res) => {
 
     const planMinutes = user?.plan?.minutes || 100;
     const MAX_SECONDS_ALLOWED = planMinutes * 60 || 6000; // 100 minutes
-    
+
     const currentTotalUsage = user.totalSecondsUsed || 0;
     const remainingSeconds = Math.max(0, MAX_SECONDS_ALLOWED - currentTotalUsage);
-    
+
     const usageData = {
       totalUsed: {
         seconds: currentTotalUsage,
@@ -79,4 +80,4 @@ const checkUsageStatus = async (req, res) => {
   }
 };
 
-export { uploadToCloudinary,checkUsageStatus };
+export { uploadToCloudinary, checkUsageStatus };

@@ -3785,6 +3785,7 @@ const generateMeetingData = async (req, res) => {
 
     // Create history record for failed meeting creation
     try {
+      const fallbackDuration = parseInt(req.body.duration) || 0;
       await historyModel.create({
         user: userId,
         action: 'creation_failed',
@@ -3793,17 +3794,17 @@ const generateMeetingData = async (req, res) => {
         details: {
           error: {
             message: error.message,
-            type: type,
-            duration: durationInSeconds,
-            durationMinutes: Math.round(durationInSeconds / 60)
+            type: req.body.type || type || 'unknown',
+            duration: fallbackDuration || durationInSeconds || 0,
+            durationMinutes: Math.round((fallbackDuration || durationInSeconds || 0) / 60)
           },
           user: {
-            userId: user._id,
-            userName: user.name || user.username,
-            userEmail: user.email
+            userId: req.user._id,
+            userName: req.user.name || req.user.username || "Unknown",
+            userEmail: req.user.email || "Unknown"
           },
           attemptedProcessing: {
-            method: type,
+            method: req.body.type || 'unknown',
             hadVideo: !!req.body.videoUrl,
             hadAudio: !!req.body.audioUrl,
             hadTranscripts: !!req.body.liveTranscripts
